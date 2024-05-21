@@ -15,6 +15,52 @@
   background: linear-gradient(130deg, rgb(11, 11, 53), rgb(99, 99, 216));
 }
 
+.forecast-container {
+  display: flex;
+  overflow-x: auto; /* Enables horizontal scrolling */
+  white-space: nowrap; /* Prevents items from wrapping to the next line */
+  padding: 10px; /* Add some padding for better visualization */
+  scroll-snap-type: x mandatory; /* Enables snap scrolling */
+}
+
+.mini-weather {
+  flex: 0 0 auto; /* Prevents the item from shrinking or growing */
+  width: 200px; /* Set a fixed width for each mini-weather item */
+  margin: 10px; /* Add some space between the mini-weather divs */
+  padding: 10px; /* Add some padding inside the mini-weather divs */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Add a shadow for better visualization */
+  border-radius: 8px; /* Rounded corners */
+  background-color: #e0e0e000; /* Background color */
+  text-align: center; /* Center the content */
+  scroll-snap-align: start; /* Ensures the item snaps to the start of the container */
+}
+
+/* Width and color of the scrollbar track */
+.forecast-container::-webkit-scrollbar {
+  width: 10px;
+  background-color: #f5f5f500;
+}
+
+/* Handle of the scrollbar */
+.forecast-container::-webkit-scrollbar-thumb {
+  background-color: #888;
+  border-radius: 5px;
+}
+
+/* Handle on hover */
+.forecast-container::-webkit-scrollbar-thumb:hover {
+  background-color: #555;
+}
+
+/* Button at the top and bottom of the scrollbar */
+.forecast-container::-webkit-scrollbar-button {
+  display: none; /* Hide the scrollbar buttons */
+}
+
+/* Corner of the scrollbar */
+.forecast-container::-webkit-scrollbar-corner {
+  background-color: transparent;
+}
 .search {
   display: flex;
   align-items: center;

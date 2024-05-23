@@ -11,12 +11,11 @@ function App() {
     name: "",
     humidity: "",
     speed: "",
-    image: "",
+    image: null,
     description: "",
     country: "",
   });
   const [data2, setData2] = useState([]);
-
   const [name, setName] = useState("");
   const [error, setError] = useState("");
 
@@ -41,160 +40,159 @@ function App() {
     second: "2-digit",
   });
 
+  const today = new Date();
+  const tomorrow = new Date();
+  tomorrow.setDate(today.getDate() + 1);
+  const formattedTomorrow = tomorrow.toLocaleDateString("en-UK", {
+    weekday: "short",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+  const getWeatherDisplay = (weatherMain) => {
+    switch (weatherMain) {
+      case "Clear":
+        return (
+          <div>
+            <div className="container">
+              <div className="cloud front">
+                <span className="left-front"></span>
+                <span className="right-front"></span>
+              </div>
+              <span className="sun sunshine"></span>
+              <span className="sun"></span>
+              <div className="cloud back">
+                <span className="left-back"></span>
+                <span className="right-back"></span>
+              </div>
+            </div>
+          </div>
+        );
+      case "Clouds":
+        return (
+          <i className="material-icons" style={{ fontSize: "90px" }}>
+            cloud
+          </i>
+        );
+      case "Rain":
+        return (
+          <div className="wrapper">
+            <div className="cloud">
+              <div className="cloud_left"></div>
+              <div className="cloud_right"></div>
+            </div>
+            <div className="rain">
+              <div className="drop"></div>
+              <div className="drop"></div>
+              <div className="drop"></div>
+              <div className="drop"></div>
+              <div className="drop"></div>
+            </div>
+            <div className="surface">
+              <div className="hit"></div>
+              <div className="hit"></div>
+              <div className="hit"></div>
+              <div className="hit"></div>
+              <div className="hit"></div>
+            </div>
+          </div>
+        );
+      case "Drizzle":
+      case "Mist":
+        return (
+          <i className="material-icons" style={{ fontSize: "90px" }}>
+            cloud
+          </i>
+        );
+      default:
+        return <div>No specific display</div>;
+    }
+  };
+
   //data
   useEffect(() => {
-    const apiUrl = `https://api.openweathermap.org/data/2.5/weather?q=Nairobi&appid=b882f0719ba7e08e90a827d174b54f6a&units=metric`;
-    axios
-      .get(apiUrl)
-      .then((res) => {
-        let imagePath = "";
-        if (res.data.weather[0].main === "Clouds") {
-          imagePath = (
-            <i className="material-icons" style={{ fontSize: "90px" }}>
-              cloud
-            </i>
-          );
-        } else if (res.data.weather[0].main === "Clear") {
-          imagePath = (
-            <i
-              className="material-icons"
-              style={{ fontSize: "90px", color: "yellow" }}
-            >
-              sunny
-            </i>
-          );
-        } else if (res.data.weather[0].main === "Rain") {
-          imagePath = (
-            <i className="material-icons" style={{ fontSize: "90px" }}>
-              cloud
-            </i>
-          );
-        } else if (res.data.weather[0].main === "Drizzle") {
-          imagePath = (
-            <i className="material-icons" style={{ fontSize: "90px" }}>
-              cloud
-            </i>
-          );
-        } else if (res.data.weather[0].main === "Mist") {
-          imagePath = (
-            <i className="material-icons" style={{ fontSize: "90px" }}>
-              cloud
-            </i>
-          );
-        }
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const apiUrl = `https://api.openweathermap.org/data/2.5/weather?q=Nairobi&appid=b882f0719ba7e08e90a827d174b54f6a&units=metric`;
+        const apiUrl2 = `https://api.openweathermap.org/data/2.5/forecast?q=nairobi&appid=b882f0719ba7e08e90a827d174b54f6a&units=metric`;
+
+        const [response, response2] = await Promise.all([
+          axios.get(apiUrl),
+          axios.get(apiUrl2),
+        ]);
+
+        const weatherMain = response.data.weather[0].main;
+        const forecastWeather = response2.data.list.slice(0, 20);
+        const weatherDisplay = getWeatherDisplay(weatherMain);
+
+        const procesedForecastData = forecastWeather.map((forecast) => {
+          const dateString = forecast.dt_txt;
+          const convertToDate = new Date(dateString);
+          const options = {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+            weekday: "short",
+          };
+
+          const optionsTime = {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true,
+          };
+          let formattedDateString = new Intl.DateTimeFormat(
+            "en-GB",
+            options
+          ).format(convertToDate);
+          const formattedTimeString = new Intl.DateTimeFormat(
+            "en-GB",
+            optionsTime
+          ).format(convertToDate);
+          if (formattedDateString === formattedDate) {
+            formattedDateString = "Today";
+          } else if (formattedDateString === formattedTomorrow) {
+            formattedDateString = "Tomorrow";
+          }
+          const forecastWeatherMain = forecast.weather[0].main;
+          const forecastWeatherDisplay = getWeatherDisplay(forecastWeatherMain);
+          return {
+            celcius: forecast.main.temp,
+            name: response2.data.city.name,
+            humidity: forecast.main.humidity,
+            speed: forecast.wind.speed,
+            image: forecastWeatherDisplay,
+            description: forecast.weather[0].description,
+            country: response2.data.city.country,
+            date: formattedDateString,
+            time: formattedTimeString,
+          };
+        });
         setData({
           ...data,
-          celcius: res.data.main.temp,
-          name: res.data.name,
-          humidity: res.data.main.humidity,
-          speed: res.data.wind.speed,
-          image: imagePath,
-          description: res.data.weather[0].description,
-          country: res.data.sys.country,
+          celcius: response.data.main.temp,
+          name: response.data.name,
+          humidity: response.data.main.humidity,
+          speed: response.data.wind.speed,
+          image: weatherDisplay,
+          description: response.data.weather[0].description,
+          country: response.data.sys.country,
         });
+        setData2(procesedForecastData);
+        setLoading(false);
         setError("");
-      })
-      .catch((err) => {
-        if (err.response.status === 404) {
-          setError("Invalid city name! Try again");
+      } catch (error) {
+        setLoading(false);
+        if (error.response && error.response.status === 404) {
+          setError("City not found. Please try again.");
         } else {
-          setError("");
+          setError("Failed to fetch weather data.");
         }
-        console.log(err);
-      });
-  }, []);
-
-  //data2
-  useEffect(() => {
-    const apiUrl = `https://api.openweathermap.org/data/2.5/forecast?q=nairobi&appid=b882f0719ba7e08e90a827d174b54f6a&units=metric`;
-    axios
-      .get(apiUrl)
-      .then((res) => {
-        let imagePath = "";
-        if (res.data.list[4].weather[0].main === "Clouds") {
-          imagePath = (
-            <i className="material-icons" style={{ fontSize: "90px" }}>
-              cloud
-            </i>
-          );
-        } else if (res.data.list[4].weather[0].main === "Clear") {
-          imagePath = (
-            <i
-              className="material-icons"
-              style={{ fontSize: "90px", color: "yellow" }}
-            >
-              sunny
-            </i>
-          );
-        } else if (res.data.list[4].weather[0].main === "Rain") {
-          imagePath = (
-            <i className="material-icons" style={{ fontSize: "90px" }}>
-              cloud
-            </i>
-          );
-        } else if (res.data.list[4].weather[0].main === "Drizzle") {
-          imagePath = (
-            <i className="material-icons" style={{ fontSize: "90px" }}>
-              cloud
-            </i>
-          );
-        } else if (res.data.list[4].weather[0].main === "Mist") {
-          imagePath = (
-            <i className="material-icons" style={{ fontSize: "90px" }}>
-              cloud
-            </i>
-          );
-        }
-        const forecastData = res.data.list.slice(0, 8);
-        setData2(
-          forecastData.map((forecast) => {
-            const dateString = forecast.dt_txt;
-            const convertToDate = new Date(dateString);
-            const options = {
-              year: "numeric",
-              month: "short",
-              day: "numeric",
-              weekday: "short",
-            };
-
-            const optionsTime = {
-              hour: "2-digit",
-              minute: "2-digit",
-              hour12: true,
-            };
-            const formattedDateString = new Intl.DateTimeFormat(
-              "en-GB",
-              options
-            ).format(convertToDate);
-            const formattedTimeString = new Intl.DateTimeFormat(
-              "en-GB",
-              optionsTime
-            ).format(convertToDate);
-            return {
-              ...data2,
-              celcius: forecast.main.temp,
-              name: res.data.city.name,
-              humidity: forecast.main.humidity,
-              speed: forecast.wind.speed,
-              image: imagePath,
-              description: forecast.weather[0].description,
-              country: res.data.city.country,
-              date: formattedDateString,
-              time: formattedTimeString,
-            };
-          })
-        );
-
-        setError("");
-      })
-      .catch((err) => {
-        if (err.response.status === 404) {
-          setError("Invalid city name! Try again");
-        } else {
-          setError("");
-        }
-        console.log(err);
-      });
+        console.error("Error fetching weather data:", error);
+      }
+    };
+    fetchData();
   }, []);
 
   const handleClick = () => {
@@ -206,58 +204,20 @@ function App() {
       Promise.all([axios.get(apiUrl), axios.get(apiForecast)])
         .then(([currentWeatherResponse, forecastWeatherResponse]) => {
           const currentResponse = currentWeatherResponse.data;
-          let imagePath = "";
-          if (currentResponse.weather[0].main === "Clouds") {
-            imagePath = (
-              <i
-                className="material-icons"
-                style={{ fontSize: "90px", color: "grey" }}
-              >
-                cloud
-              </i>
-            );
-          } else if (currentResponse.weather[0].main === "Clear") {
-            imagePath = (
-              <i
-                className="material-icons"
-                style={{ fontSize: "90px", color: "yellow" }}
-              >
-                sunny
-              </i>
-            );
-          } else if (currentResponse.weather[0].main === "Rain") {
-            imagePath = (
-              <i
-                className="material-icons"
-                style={{ fontSize: "90px", color: "blue" }}
-              >
-                cloud
-              </i>
-            );
-          } else if (currentResponse.weather[0].main === "Drizzle") {
-            imagePath = (
-              <i className="material-icons" style={{ fontSize: "90px" }}>
-                cloud
-              </i>
-            );
-          } else if (currentResponse.weather[0].main === "Mist") {
-            imagePath = (
-              <i className="material-icons" style={{ fontSize: "90px" }}>
-                cloud
-              </i>
-            );
-          }
+          const weatherMain = currentResponse.weather[0].main;
+          const weatherDisplay = getWeatherDisplay(weatherMain);
+
           setData({
             celcius: currentResponse.main.temp,
             name: currentResponse.name,
             humidity: currentResponse.main.humidity,
             speed: currentResponse.wind.speed,
-            image: imagePath,
+            image: weatherDisplay,
             description: currentResponse.weather[0].description,
             country: currentResponse.sys.country,
           });
 
-          const forecastData = forecastWeatherResponse.data.list.slice(0, 8);
+          const forecastData = forecastWeatherResponse.data.list.slice(0, 20);
           const processedForecastData = forecastData.map((forecast) => {
             const dateString = forecast.dt_txt;
             const convertToDate = new Date(dateString);
@@ -273,7 +233,7 @@ function App() {
               minute: "2-digit",
               hour12: true,
             };
-            const formattedDateString = new Intl.DateTimeFormat(
+            let formattedDateString = new Intl.DateTimeFormat(
               "en-GB",
               options
             ).format(convertToDate);
@@ -281,12 +241,20 @@ function App() {
               "en-GB",
               optionsTime
             ).format(convertToDate);
+            if (formattedDateString === formattedDate) {
+              formattedDateString = "Today";
+            } else if (formattedDateString === formattedTomorrow) {
+              formattedDateString = "Tomorrow";
+            }
+            const forecastWeatherMain = forecast.weather[0].main;
+            const forecastWeatherDisplay =
+              getWeatherDisplay(forecastWeatherMain);
             return {
               celcius: forecast.main.temp,
               name: forecastWeatherResponse.data.city.name,
               humidity: forecast.main.humidity,
               speed: forecast.wind.speed,
-              image: imagePath,
+              image: forecastWeatherDisplay,
               description: forecast.weather[0].description,
               country: forecastWeatherResponse.data.city.country,
               date: formattedDateString,
@@ -297,13 +265,14 @@ function App() {
           setLoading(false);
           setError("");
         })
-        .catch((err) => {
-          if (err.response.status === 404) {
-            setError("Invalid city name! Try again");
+        .catch((error) => {
+          setLoading(false);
+          if (error.response && error.response.status === 404) {
+            setError("City not found. Please try again.");
           } else {
-            setError("");
+            setError("Failed to fetch weather data.");
           }
-          console.log(err);
+          console.error("Error fetching weather data:", error);
         });
     }
   };
@@ -381,7 +350,7 @@ function App() {
           </div>
         )}
       </div>
-     
+
       {loading && (
         <div className="loader">
           <div className="loader__circle"></div>
@@ -411,3 +380,54 @@ export default App;
           </div>
         </div>
       </div>*/
+
+//drizzles
+/*<div class="loader">
+    <div class="snow">
+        <span style="--i:11"></span>
+        <span style="--i:12"></span>
+        <span style="--i:15"></span>
+        <span style="--i:17"></span>
+        <span style="--i:18"></span>
+        <span style="--i:13"></span>
+        <span style="--i:14"></span>
+        <span style="--i:19"></span>
+        <span style="--i:20"></span>
+        <span style="--i:10"></span>
+        <span style="--i:18"></span>
+        <span style="--i:13"></span>
+        <span style="--i:14"></span>
+        <span style="--i:19"></span>
+        <span style="--i:20"></span>
+        <span style="--i:10"></span>
+        <span style="--i:18"></span>
+        <span style="--i:13"></span>
+        <span style="--i:14"></span>
+        <span style="--i:19"></span>
+        <span style="--i:20"></span>
+        <span style="--i:10"></span>
+    </div>
+</div> */
+
+//rainy
+/*
+<div class="wrapper">
+  <div class="cloud">
+    <div class="cloud_left"></div>
+    <div class="cloud_right"></div>
+  </div>
+  <div class="rain">
+    <div class="drop"></div>
+    <div class="drop"></div>
+    <div class="drop"></div>
+    <div class="drop"></div>
+    <div class="drop"></div>
+  </div>
+  <div class="surface">
+    <div class="hit"></div>
+    <div class="hit"></div>
+    <div class="hit"></div>
+    <div class="hit"></div>
+    <div class="hit"></div>
+  </div>
+</div>*/
